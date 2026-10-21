@@ -1,0 +1,33 @@
+# Dependencies and generated output
+node_modules/
+.next/
+out/
+dist/
+coverage/
+*.tsbuildinfo
+.pnpm-store/
+.vercel/
+
+# Tests, local scratch and exported user data
+playwright-report/
+test-results/
+/work/
+/outputs/
+/tmp/
+/backups/
+shiftsync-backup-*.json
+*.log
+*.tmp
+*.bak
+*.swp
+.DS_Store
+
+# Local credentials and private keys
+.env*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+.npmrc
