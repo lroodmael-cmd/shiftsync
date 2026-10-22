@@ -8,13 +8,13 @@ import type {
 import { seriesFromDraft } from "./recurrence";
 import { shiftDate, zonedLocal } from "./time";
 import { putException } from "./exceptions";
-export function saveShift(
-  data: Schedule,
+export function saveShift<T extends Schedule>(
+  data: T,
   draft: WorkShift,
   repeat: RepeatSettings,
   original?: Occurrence,
   scope: Scope = "only",
-): Schedule {
+): T {
   if (!original?.seriesId) {
     const singles = data.singles.filter((s) => s.id !== draft.id);
     return repeat.frequency === "none"
@@ -110,11 +110,11 @@ export function saveShift(
     exceptions: [...oldExceptions, ...future],
   };
 }
-export function deleteShift(
-  data: Schedule,
+export function deleteShift<T extends Schedule>(
+  data: T,
   original: Occurrence,
   scope: Scope = "only",
-): Schedule {
+): T {
   if (!original.seriesId)
     return {
       ...data,

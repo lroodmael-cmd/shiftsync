@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, Plus, Car, Repeat2 } from "lucide-react";
 import { addDays, layoutSegments, startOfWeek } from "@/lib/calendar";
 import type { CalendarEvent, Occurrence, Schedule } from "@/lib/schedule/types";
+import type { WorkspaceSchedule } from "@/lib/workplaces/types";
 import { calendarEvents } from "@/lib/schedule/commute";
 type View = "Day" | "3 Days" | "Week";
 const time = (date: Date) =>
@@ -13,11 +14,15 @@ export function WeeklyCalendar({
   onEdit,
   onCreate,
   now,
+  workplaceFilter,
+  onWorkplaceFilterChange,
 }: {
-  schedule: Schedule;
+  schedule: WorkspaceSchedule;
   onEdit: (s: Occurrence) => void;
   onCreate: (date: Date) => void;
   now: Date;
+  workplaceFilter: string;
+  onWorkplaceFilterChange: (id: string) => void;
 }) {
   const [view, setView] = useState<View>("Week");
   const [anchor, setAnchor] = useState(() => new Date(now));
@@ -30,7 +35,21 @@ export function WeeklyCalendar({
   first.setHours(0, 0, 0, 0);
   const days = Array.from({ length: count }, (_, i) => addDays(first, i));
   const key = first.toDateString();
-  const shifts = calendarEvents(schedule, first, addDays(first, count));
+  useEffect(() => {
+    if (
+      workplaceFilter !== "all" &&
+      workplaceFilter !== "unassigned" &&
+      !schedule.workplaces.some((w) => w.id === workplaceFilter)
+    )
+      onWorkplaceFilterChange("all");
+  }, [workplaceFilter, schedule.workplaces, onWorkplaceFilterChange]);
+  const shifts = calendarEvents(schedule, first, addDays(first, count)).filter(
+    (e) =>
+      workplaceFilter === "all" ||
+      (workplaceFilter === "unassigned"
+        ? !e.work.workplaceId
+        : e.work.workplaceId === workplaceFilter),
+  );
   useEffect(() => {
     const visible = shifts.filter(
       (s) =>
@@ -70,6 +89,23 @@ export function WeeklyCalendar({
           </p>
         </div>
         <div className="calendar-controls">
+          <label className="calendar-filter">
+            Workplace
+            <select
+              aria-label="Filter calendar by workplace"
+              value={workplaceFilter}
+              onChange={(e) => onWorkplaceFilterChange(e.target.value)}
+            >
+              <option value="all">All workplaces</option>
+              <option value="unassigned">No workplace</option>
+              {schedule.workplaces.map((w) => (
+                <option key={w.id} value={w.id}>
+                  {w.name}
+                  {w.archived ? " (archived)" : ""}
+                </option>
+              ))}
+            </select>
+          </label>
           <div className="view-switch" role="group" aria-label="Calendar view">
             {(["Day", "3 Days", "Week"] as View[]).map((v) => (
               <button
@@ -168,7 +204,7 @@ export function WeeklyCalendar({
                       <button
                         key={shift.id}
                         className={`calendar-event ${shift.kind !== "work" ? "commute-event" : ""}`}
-                        title={`${shift.title}: ${start.toLocaleString()} → ${end.toLocaleString()}`}
+                        title={`${shift.title}: ${start.toLocaleString()} → ${end.toLocaleString()}${shift.work.assignment ? ` · ${shift.work.assignment.workplaceName} / ${shift.work.assignment.locationName ?? "No location"}` : ""}`}
                         aria-label={`Edit ${shift.title}, ${start.toLocaleString()} to ${end.toLocaleString()}`}
                         onClick={() => onEdit(shift.work)}
                         style={{
@@ -209,6 +245,12 @@ export function WeeklyCalendar({
                             </>
                           )}
                         </strong>
+                        {shift.kind === "work" &&
+                          shift.work.assignment?.locationName && (
+                            <span className="event-location">
+                              {shift.work.assignment.locationName}
+                            </span>
+                          )}
                         <small>
                           {time(start)} – {time(end)}
                         </small>

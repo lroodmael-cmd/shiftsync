@@ -1,6 +1,7 @@
 import { Temporal } from "@js-temporal/polyfill";
 import type { Occurrence, RepeatSettings, Series, WorkShift } from "./types";
 import { noCommute } from "./types";
+import { associationOf } from "../workplaces/types";
 import { dateInZone, instant, shiftDate, zonedLocal } from "./time";
 export const occurrenceId = (seriesId: string, date: string) =>
   `${seriesId}@${date}`;
@@ -32,6 +33,8 @@ export function occurrence(series: Series, date: string): Occurrence {
     endAt = new Date(+new Date(startAt) + nominal * 60000).toISOString();
   }
   return {
+    ...associationOf(series),
+    timeZone: series.rule.timeZone,
     id: occurrenceId(series.id, date),
     seriesId: series.id,
     occurrenceDate: date,
@@ -65,6 +68,8 @@ export function seriesFromDraft(
   if (repeat.frequency === "weekly" && !repeat.weekdays.length)
     throw Error("Select at least one weekday.");
   return {
+    ...associationOf(draft),
+    timeZone: repeat.timeZone,
     id,
     title: draft.title,
     color: draft.color,

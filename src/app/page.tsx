@@ -15,6 +15,7 @@ import {
   Coffee,
   ArrowRight,
   ShieldCheck,
+  Building2,
 } from "lucide-react";
 import type { Occurrence, Scope } from "@/lib/schedule/types";
 import { conflictsForOccurrence } from "@/lib/schedule/conflicts";
@@ -23,11 +24,13 @@ import { scheduleSummary, listOccurrences } from "@/lib/schedule/summary";
 import { countdown } from "@/lib/dashboard";
 import { useSchedule } from "@/hooks/useSchedule";
 import { WeeklyCalendar } from "@/components/WeeklyCalendar";
+import { WorkplacesView } from "@/components/workplaces/WorkplacesView";
 import { ShiftEditor } from "@/components/ShiftEditor";
-type Page = "Overview" | "Calendar" | "Analytics" | "Settings";
+type Page = "Overview" | "Calendar" | "Workplaces" | "Analytics" | "Settings";
 const navigation = [
   { name: "Overview", icon: LayoutDashboard },
   { name: "Calendar", icon: CalendarDays },
+  { name: "Workplaces", icon: Building2 },
   { name: "Analytics", icon: ChartNoAxesCombined },
   { name: "Settings", icon: Settings },
 ] as const;
@@ -49,6 +52,7 @@ export default function Home() {
     storageError,
     exportBackup,
   } = useSchedule();
+  const [workplaceFilter, setWorkplaceFilter] = useState("all");
   const [page, setPage] = useState<Page>("Overview");
   const [now, setNow] = useState<Date | null>(null);
   const [editor, setEditor] = useState<{
@@ -125,6 +129,14 @@ export default function Home() {
                     ? `Series rule · ${s.rule?.frequency} · ${s.rule?.timeZone}`
                     : `${display(s.startAt)} → ${display(s.endAt)}`}
                 </small>
+                {s.assignment && (
+                  <small className="assignment-label">
+                    {s.assignment.workplaceName}
+                    {s.assignment.locationName
+                      ? ` · ${s.assignment.locationName}`
+                      : ""}
+                  </small>
+                )}
                 {conflictsForOccurrence(schedule, s).length > 0 && (
                   <span className="warning">Overlaps another shift</span>
                 )}
@@ -186,7 +198,7 @@ export default function Home() {
         <div className="sidebar-note">
           <span className="status-dot" /> A little more balance.
           <p>A schedule that works for you.</p>
-          <span className="tiny">LOCAL WORKSPACE · SPRINT 03</span>
+          <span className="tiny">LOCAL WORKSPACE · SPRINT 04</span>
         </div>
         <div className="profile">
           <span className="avatar">Y</span>
@@ -221,35 +233,37 @@ export default function Home() {
           </div>
         </header>
         <div className="content">
-          <div className="intro">
-            <div>
-              <p className="eyebrow">A LITTLE STRUCTURE. MORE FREEDOM.</p>
-              <h1>
-                {page === "Overview"
-                  ? "Your day, in sync."
-                  : page === "Calendar"
-                    ? "Make space for your life."
-                    : page}
-              </h1>
-              <p className="sub">
-                {page === "Overview"
-                  ? "A clear view of work, rest, and everything in between."
-                  : page === "Calendar"
-                    ? "Your shifts, your rhythm. Plan with a little more clarity."
-                    : "Your workspace is growing. More tools are on the way."}
-              </p>
+          {page !== "Workplaces" && (
+            <div className="intro">
+              <div>
+                <p className="eyebrow">A LITTLE STRUCTURE. MORE FREEDOM.</p>
+                <h1>
+                  {page === "Overview"
+                    ? "Your day, in sync."
+                    : page === "Calendar"
+                      ? "Make space for your life."
+                      : page}
+                </h1>
+                <p className="sub">
+                  {page === "Overview"
+                    ? "A clear view of work, rest, and everything in between."
+                    : page === "Calendar"
+                      ? "Your shifts, your rhythm. Plan with a little more clarity."
+                      : "Your workspace is growing. More tools are on the way."}
+                </p>
+              </div>
+              {(page === "Overview" || page === "Calendar") && (
+                <button
+                  className="primary"
+                  disabled={!ready}
+                  onClick={() => create()}
+                >
+                  <Plus size={18} />
+                  New shift
+                </button>
+              )}
             </div>
-            {(page === "Overview" || page === "Calendar") && (
-              <button
-                className="primary"
-                disabled={!ready}
-                onClick={() => create()}
-              >
-                <Plus size={18} />
-                New shift
-              </button>
-            )}
-          </div>
+          )}
           {storageError && (
             <p role="alert" className="warning storage-error">
               {storageError}
@@ -261,6 +275,18 @@ export default function Home() {
             </div>
           ) : (
             <>
+              {page === "Workplaces" && (
+                <WorkplacesView
+                  data={schedule}
+                  now={now}
+                  onChange={setSchedule}
+                  onEditShift={edit}
+                  onCalendar={(id) => {
+                    setWorkplaceFilter(id);
+                    setPage("Calendar");
+                  }}
+                />
+              )}
               {page === "Overview" && (
                 <>
                   <section
@@ -396,6 +422,8 @@ export default function Home() {
                   </div>
                   <WeeklyCalendar
                     schedule={schedule}
+                    workplaceFilter={workplaceFilter}
+                    onWorkplaceFilterChange={setWorkplaceFilter}
                     onEdit={edit}
                     onCreate={create}
                     now={now}

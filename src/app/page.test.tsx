@@ -4,7 +4,7 @@ import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import Home from "./page";
 import { SHIFT_KEY } from "@/lib/storage";
-import { SCHEDULE_KEY } from "@/lib/schedule/persistence";
+import { WORKSPACE_KEY as SCHEDULE_KEY } from "@/lib/workplaces/persistence";
 let root: Root;
 let container: HTMLDivElement;
 beforeEach(() => {

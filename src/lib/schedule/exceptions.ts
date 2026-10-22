@@ -5,7 +5,7 @@ export function exceptionIndex(data: Schedule) {
     data.exceptions.map((e) => [occurrenceId(e.seriesId, e.date), e]),
   );
 }
-export function putException(data: Schedule, value: Exception): Schedule {
+export function putException<T extends Schedule>(data: T, value: Exception): T {
   return {
     ...data,
     exceptions: [

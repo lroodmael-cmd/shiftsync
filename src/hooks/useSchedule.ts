@@ -1,21 +1,22 @@
 "use client";
-import { useEffect, useState } from "react";
-import { THEME_KEY } from "@/lib/storage";
-import { emptySchedule } from "@/lib/schedule/types";
-import {
-  backupPayload,
-  loadSchedule,
-  SCHEDULE_KEY,
-} from "@/lib/schedule/persistence";
+import { useEffect, useState, useRef } from "react";
+import { THEME_KEY, SHIFT_KEY } from "@/lib/storage";
+import { emptyWorkspace } from "@/lib/workplaces/types";
+import { loadWorkspace, WORKSPACE_KEY } from "@/lib/workplaces/persistence";
+import { backupPayload, SCHEDULE_KEY } from "@/lib/schedule/persistence";
 export function useSchedule() {
-  const [schedule, setSchedule] = useState(emptySchedule);
+  const [schedule, setSchedule] = useState(emptyWorkspace);
+  const expectedStorage = useRef<string | null>(null);
+  const writeAllowed = useRef(false);
   const [ready, setReady] = useState(false);
   const [theme, setTheme] = useState<"light" | "dark">("dark");
   const [storageError, setStorageError] = useState("");
   const [writable, setWritable] = useState(false);
   useEffect(() => {
     try {
-      setSchedule(loadSchedule(localStorage));
+      setSchedule(loadWorkspace(localStorage));
+      expectedStorage.current = localStorage.getItem(WORKSPACE_KEY);
+      writeAllowed.current = true;
       setWritable(true);
     } catch {
       setStorageError(
@@ -33,7 +34,13 @@ export function useSchedule() {
       );
     } catch {}
     const changed = (event: StorageEvent) => {
-      if (event.key === SCHEDULE_KEY) {
+      if (
+        event.key === WORKSPACE_KEY ||
+        event.key === SCHEDULE_KEY ||
+        event.key === SHIFT_KEY ||
+        event.key === null
+      ) {
+        writeAllowed.current = false;
         setWritable(false);
         setStorageError(
           "The schedule changed in another tab. Export a backup and reload before editing.",
@@ -45,9 +52,19 @@ export function useSchedule() {
     return () => window.removeEventListener("storage", changed);
   }, []);
   useEffect(() => {
-    if (ready && writable)
+    if (ready && writable && writeAllowed.current)
       try {
-        localStorage.setItem(SCHEDULE_KEY, JSON.stringify(schedule));
+        if (localStorage.getItem(WORKSPACE_KEY) !== expectedStorage.current) {
+          writeAllowed.current = false;
+          setWritable(false);
+          setStorageError(
+            "The schedule changed in another tab. Export a backup and reload before editing.",
+          );
+          return;
+        }
+        const serialized = JSON.stringify(schedule);
+        localStorage.setItem(WORKSPACE_KEY, serialized);
+        expectedStorage.current = serialized;
         setStorageError("");
       } catch {
         setStorageError(

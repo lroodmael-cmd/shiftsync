@@ -1,6 +1,7 @@
 import type { Shift } from "../shifts";
-export type Commute = { beforeMinutes: number; afterMinutes: number };
-export type WorkShift = Shift & { commute?: Commute };
+import type { CommuteSettings, ShiftAssociation } from "../workplaces/types";
+export type Commute = CommuteSettings;
+export type WorkShift = Shift & ShiftAssociation & { commute?: Commute };
 export type Frequency = "none" | "daily" | "weekly";
 export type Rule = {
   frequency: "daily" | "weekly";
@@ -9,7 +10,7 @@ export type Rule = {
   weekdays: number[];
   timeZone: string;
 };
-export type Series = {
+export type Series = ShiftAssociation & {
   id: string;
   title: string;
   color: string;
@@ -23,7 +24,7 @@ export type Exception =
   | { seriesId: string; date: string; deleted: true; override?: never }
   | { seriesId: string; date: string; override: WorkShift; deleted?: never };
 export type Schedule = {
-  version: 2;
+  version: 2 | 3;
   singles: WorkShift[];
   series: Series[];
   exceptions: Exception[];

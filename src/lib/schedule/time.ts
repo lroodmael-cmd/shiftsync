@@ -30,3 +30,7 @@ export function validZone(zone: string) {
     return false;
   }
 }
+
+export function localWeekday(local: string) {
+  return Temporal.PlainDateTime.from(local).dayOfWeek;
+}
