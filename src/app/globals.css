@@ -629,7 +629,7 @@ button:active {
 .time-axis,
 .day-column {
   position: relative;
-  height: 1536px;
+  height: calc(var(--hour-height, 48px) * 24);
 }
 .time-axis span {
   position: absolute;
@@ -663,20 +663,18 @@ button:active {
 .calendar-event {
   position: absolute;
   overflow: hidden;
-  border: 1px solid var(--border);
+  border: 0;
   border-left: 3px solid;
   border-radius: 7px;
   background: var(--soft);
   color: var(--text);
   text-align: left;
-  padding: 9px 7px;
-  min-height: 16px;
-  box-shadow: 0 2px 4px #00000006;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  justify-content: flex-start;
-  gap: 6px;
+  padding: 0;
+  min-height: 0;
+  box-shadow:
+    inset 0 0 0 1px var(--border),
+    0 2px 4px #00000006;
+  display: block;
 }
 .calendar-event:hover {
   background: var(--surface);
@@ -710,7 +708,7 @@ button:active {
   text-align: right;
   line-height: 20px;
 }
-.now-line > span {
+.now-line > .now-dot {
   position: absolute;
   width: 7px;
   height: 7px;
@@ -722,6 +720,7 @@ button:active {
 .calendar-footer {
   border-top: 1px solid var(--border);
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   gap: 12px;
   padding: 13px 20px;
@@ -1582,5 +1581,215 @@ select:focus-visible {
   }
   .workplace-empty h2 {
     font-size: 21px;
+  }
+}
+
+/* One time scale drives work, travel, slots, axis and the current-time line. */
+.calendar-scroll {
+  overflow-anchor: none;
+}
+.calendar-zoom {
+  flex-basis: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  border-top: 1px solid var(--border);
+  padding-top: 12px;
+}
+.zoom-range {
+  display: grid;
+  grid-template-columns: 32px minmax(60px, 1fr) 32px auto auto;
+  align-items: center;
+  gap: 6px;
+  width: min(100%, 390px);
+}
+.zoom-range .iconbutton {
+  display: grid;
+  place-items: center;
+  padding: 7px;
+  min-height: 36px;
+}
+.zoom-slider {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  font-size: 9px;
+  color: var(--muted);
+}
+.zoom-slider input {
+  width: 100%;
+  min-width: 0;
+  height: 25px;
+  margin: 0;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+.zoom-value {
+  min-width: 46px;
+  font-size: 10px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+.zoom-range .zoom-reset {
+  padding: 8px;
+  gap: 5px;
+  font-size: 10px;
+}
+.zoom-presets {
+  display: flex;
+  padding: 3px;
+  gap: 3px;
+  border-radius: 8px;
+  background: var(--soft);
+}
+.zoom-presets button {
+  border: 0;
+  border-radius: 6px;
+  padding: 8px 10px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 11px;
+}
+.zoom-presets button[aria-pressed="true"] {
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 1px 5px #00000010;
+}
+.event-content {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 7px 6px;
+  width: 100%;
+}
+.event-heading {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+.event-heading svg,
+.event-heading .event-dot {
+  flex-shrink: 0;
+}
+.calendar-event .event-heading strong {
+  min-width: 0;
+}
+.event-extra {
+  display: grid;
+  gap: 5px;
+  font-size: 10px;
+  color: var(--muted);
+}
+.calendar-event.event-compact .event-content {
+  padding: 1px 4px;
+  gap: 0;
+}
+.calendar-event.event-compact .event-type,
+.calendar-event.event-compact .event-location {
+  display: none;
+}
+.calendar-event.event-compact strong {
+  font-size: 10px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  line-height: 14px;
+}
+.calendar-event.event-compact .event-time {
+  font-size: 9px;
+  line-height: 12px;
+  white-space: nowrap;
+}
+.calendar-event.event-compact .event-dot {
+  display: none;
+}
+.calendar-event.event-tiny .event-content {
+  display: none;
+}
+.calendar-event.event-tiny {
+  border-radius: 2px;
+}
+.calendar-event.commute-event {
+  padding: 0;
+}
+.calendar-event.commute-event .event-heading {
+  color: var(--text);
+}
+.calendar-event.commute-event .event-dot {
+  display: none;
+}
+.small-events {
+  border-top: 1px solid var(--border);
+  padding: 10px 20px 14px;
+  color: var(--muted);
+  font-size: 11px;
+}
+.small-events summary {
+  cursor: pointer;
+  padding: 7px 0;
+}
+.small-events summary:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 3px;
+}
+.small-events > div {
+  display: grid;
+  gap: 7px;
+  margin-top: 10px;
+}
+.small-event {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  text-align: left;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+.small-event > span:last-child {
+  min-width: 0;
+}
+.small-event strong {
+  display: block;
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+.small-event small {
+  display: block;
+  font-size: 10px;
+  color: var(--muted);
+  margin-top: 4px;
+}
+.small-event svg,
+.small-event-color {
+  flex-shrink: 0;
+}
+.small-event-color {
+  width: 4px;
+  height: 24px;
+  border-radius: 3px;
+}
+.zoom-note {
+  padding: 0 20px 10px;
+  margin: 0;
+  font-size: 11px;
+  color: var(--muted);
+}
+@media (max-width: 700px) {
+  .calendar-zoom {
+    gap: 10px;
+  }
+  .zoom-range {
+    width: 100%;
+  }
+  .small-events {
+    padding: 10px 12px;
   }
 }

@@ -24,7 +24,8 @@ export function daySegments<T extends Shift>(shifts: T[], day: Date) {
         +end === +to
           ? 100
           : ((end.getHours() * 60 + end.getMinutes()) / 1440) * 100;
-      return { shift, start, end, top, height: Math.max(1, bottom - top) };
+      // Keep short segments at their true wall-clock size; selection targets live separately.
+      return { shift, start, end, top, height: Math.max(0, bottom - top) };
     })
     .sort((a, b) => +a.start - +b.start);
 }

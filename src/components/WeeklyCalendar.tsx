@@ -1,10 +1,19 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
-import { ChevronLeft, ChevronRight, Plus, Car, Repeat2 } from "lucide-react";
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+} from "react";
+import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { addDays, layoutSegments, startOfWeek } from "@/lib/calendar";
-import type { CalendarEvent, Occurrence, Schedule } from "@/lib/schedule/types";
+import type { Occurrence } from "@/lib/schedule/types";
 import type { WorkspaceSchedule } from "@/lib/workplaces/types";
 import { calendarEvents } from "@/lib/schedule/commute";
+import { useCalendarZoom } from "@/hooks/useCalendarZoom";
+import { CalendarZoomControls } from "./CalendarZoomControls";
+import { CalendarEventBlock, EventIcon } from "./CalendarEventBlock";
 type View = "Day" | "3 Days" | "Week";
 const time = (date: Date) =>
   date.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
@@ -26,7 +35,14 @@ export function WeeklyCalendar({
 }) {
   const [view, setView] = useState<View>("Week");
   const [anchor, setAnchor] = useState(() => new Date(now));
+  const scope = useRef<HTMLElement>(null);
   const scroll = useRef<HTMLDivElement>(null);
+  const {
+    hourHeight,
+    setZoom,
+    ready: zoomReady,
+    sessionOnly,
+  } = useCalendarZoom(scope, scroll);
   useEffect(() => {
     if (window.matchMedia("(max-width: 700px)").matches) setView("Day");
   }, []);
@@ -50,7 +66,17 @@ export function WeeklyCalendar({
         ? !e.work.workplaceId
         : e.work.workplaceId === workplaceFilter),
   );
-  useEffect(() => {
+  const dayLayouts = days.map((day) => layoutSegments(shifts, day));
+  const smallEvents = [
+    ...new Map(
+      dayLayouts
+        .flat()
+        .filter((s) => (s.height / 100) * 24 * hourHeight < 44)
+        .map((s) => [s.shift.id, s.shift]),
+    ).values(),
+  ];
+  useLayoutEffect(() => {
+    if (!zoomReady) return;
     const visible = shifts.filter(
       (s) =>
         +new Date(s.startAt) < +addDays(first, count) &&
@@ -62,14 +88,20 @@ export function WeeklyCalendar({
         ? new Date(Math.max(+first, +new Date(visible[0].startAt))).getHours()
         : 8;
     scroll.current?.scrollTo?.({
-      top: Math.max(0, hour - 2) * 64,
+      top: Math.max(0, hour - 2) * hourHeight,
       behavior: "instant",
     });
     // Scroll on navigation only, so the minute timer never moves the user's view.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key, count]);
+  }, [key, count, zoomReady]);
   return (
-    <section className="panel calendar" aria-label="Schedule calendar">
+    <section
+      ref={scope}
+      className="panel calendar"
+      aria-label="Schedule calendar"
+      data-hour-height={hourHeight}
+      style={{ "--hour-height": `${hourHeight}px` } as CSSProperties}
+    >
       <div className="calendar-toolbar">
         <div>
           <p className="eyebrow">YOUR TIME, AT A GLANCE</p>
@@ -80,12 +112,7 @@ export function WeeklyCalendar({
             })}
           </h2>
           <p className="sub" aria-live="polite">
-            {first.toLocaleDateString(undefined, {
-              month: "short",
-              day: "numeric",
-            })}
-            {count > 1 &&
-              ` – ${days[count - 1].toLocaleDateString(undefined, { month: "short", day: "numeric" })}`}
+            {`${first.toLocaleDateString(undefined, { month: "short", day: "numeric" })}${count > 1 ? ` – ${days[count - 1].toLocaleDateString(undefined, { month: "short", day: "numeric" })}` : ""}`}
           </p>
         </div>
         <div className="calendar-controls">
@@ -140,6 +167,7 @@ export function WeeklyCalendar({
             </button>
           </nav>
         </div>
+        <CalendarZoomControls value={hourHeight} onChange={setZoom} />
       </div>
       <div
         className="calendar-scroll"
@@ -176,8 +204,8 @@ export function WeeklyCalendar({
               </span>
             ))}
           </div>
-          {days.map((day) => {
-            const segments = layoutSegments(shifts, day);
+          {days.map((day, dayIndex) => {
+            const segments = dayLayouts[dayIndex];
             return (
               <div
                 className={`day-column ${sameDay(day, now) ? "today-column" : ""}`}
@@ -198,66 +226,15 @@ export function WeeklyCalendar({
                     <Plus size={14} />
                   </button>
                 ))}
-                {segments.map(
-                  ({ shift, top, height, start, end, column, columns }, i) => {
-                    return (
-                      <button
-                        key={shift.id}
-                        className={`calendar-event ${shift.kind !== "work" ? "commute-event" : ""}`}
-                        title={`${shift.title}: ${start.toLocaleString()} → ${end.toLocaleString()}${shift.work.assignment ? ` · ${shift.work.assignment.workplaceName} / ${shift.work.assignment.locationName ?? "No location"}` : ""}`}
-                        aria-label={`Edit ${shift.title}, ${start.toLocaleString()} to ${end.toLocaleString()}`}
-                        onClick={() => onEdit(shift.work)}
-                        style={{
-                          top: `${top}%`,
-                          height: `${height}%`,
-                          left: `${(column * 100) / columns}%`,
-                          width: `${100 / columns}%`,
-                          borderLeftColor: shift.color,
-                          zIndex: i + 1,
-                        }}
-                      >
-                        <span
-                          className="event-dot"
-                          style={{ background: shift.color }}
-                        />
-                        <span className="event-type">
-                          {shift.kind !== "work" ? (
-                            <>
-                              <Car size={12} />
-                              Unpaid travel
-                            </>
-                          ) : shift.work.seriesId ? (
-                            <>
-                              <Repeat2 size={12} />
-                              Repeating shift
-                            </>
-                          ) : null}
-                        </span>
-                        <strong>
-                          {shift.kind === "work" ? (
-                            shift.title
-                          ) : (
-                            <>
-                              <Car size={12} />
-                              {shift.kind === "before"
-                                ? "To shift"
-                                : "From shift"}
-                            </>
-                          )}
-                        </strong>
-                        {shift.kind === "work" &&
-                          shift.work.assignment?.locationName && (
-                            <span className="event-location">
-                              {shift.work.assignment.locationName}
-                            </span>
-                          )}
-                        <small>
-                          {time(start)} – {time(end)}
-                        </small>
-                      </button>
-                    );
-                  },
-                )}
+                {segments.map((segment, index) => (
+                  <CalendarEventBlock
+                    key={segment.shift.id}
+                    segment={segment}
+                    hourHeight={hourHeight}
+                    index={index}
+                    onEdit={onEdit}
+                  />
+                ))}
                 {sameDay(day, now) && (
                   <div
                     className="now-line"
@@ -266,8 +243,8 @@ export function WeeklyCalendar({
                     }}
                     aria-label={`Current time ${time(now)}`}
                   >
-                    <span />
-                    {time(now)}
+                    <span className="now-dot" />
+                    <span className="now-time">{time(now)}</span>
                   </div>
                 )}
               </div>
@@ -280,7 +257,46 @@ export function WeeklyCalendar({
           <i /> Current time
         </span>
         <span>Click an empty hour to plan a shift</span>
+        <span>Cmd / Ctrl + scroll inside the calendar to zoom</span>
       </div>
+      {sessionOnly && (
+        <p className="zoom-note" role="status">
+          Zoom changes are saved for this session only. Browser storage is
+          unavailable.
+        </p>
+      )}
+      {smallEvents.length > 0 && (
+        <details className="small-events">
+          <summary>{`Small events (${smallEvents.length}) · Open details`}</summary>
+          <p className="field-note">
+            These blocks keep their true duration on the grid. Use this list for
+            easier selection.
+          </p>
+          <div>
+            {smallEvents.map((event) => (
+              <button
+                key={event.id}
+                type="button"
+                className="small-event"
+                onClick={() => onEdit(event.work)}
+              >
+                <span
+                  className="small-event-color"
+                  style={{ background: event.color }}
+                />
+                <EventIcon event={event} />
+                <span>
+                  <strong>{event.title}</strong>
+                  <small>
+                    {new Date(event.startAt).toLocaleString()} →{" "}
+                    {new Date(event.endAt).toLocaleString()}
+                  </small>
+                </span>
+              </button>
+            ))}
+          </div>
+        </details>
+      )}
     </section>
   );
 }

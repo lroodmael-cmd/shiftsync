@@ -39,7 +39,9 @@ async function click(label: string) {
   await act(async () => button!.click());
 }
 async function input(index: number, value: string) {
-  const el = container.querySelectorAll("input")[index];
+  const el = container.querySelector("dialog[open]")!.querySelectorAll("input")[
+    index
+  ];
   await act(async () => {
     Object.getOwnPropertyDescriptor(
       HTMLInputElement.prototype,

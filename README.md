@@ -1,4 +1,4 @@
-# ShiftSync — Sprint 04
+# ShiftSync — Calendar Zoom
 
 A local-first Next.js / TypeScript planner for people working beyond the 9–5. The dashboard, Day / 3 Days / Week calendar, responsive editor, light/dark themes and Sprint 03 recurrence engine are preserved. Sprint 04 adds workplaces, locations and reusable commute defaults without adding dependencies.
 
@@ -13,6 +13,22 @@ pnpm start
 ```
 
 Open http://localhost:3000. `pnpm dev` is also available; environments with limited file watchers should use the production build.
+
+## Calendar zoom
+
+The calendar toolbar provides **Zoom Out**, **Zoom In**, a keyboard-accessible slider and **Reset**. An hour can occupy 18–80 pixels (48 by default). Presets are **Compact (18)**, **Normal (48)** and **Detailed (80)**. Zoom is shared across Day / 3 Days / Week and survives page changes and reloads.
+
+Work blocks, unpaid travel, empty creation slots, the time axis and the current-time line share one scale. All 24 hours remain available; the grid scrolls vertically when required and Week retains its internal horizontal scroll on mobile. No work or commute dates, durations, IDs or saved schedule records change when zooming.
+
+On Mac, hold **Cmd** while scrolling inside the calendar; on Windows/Linux, hold **Ctrl**. Ordinary scrolling is unchanged, and wheel input outside the calendar is left to the browser. Zoom buttons move by four pixels; fine wheel movement and slider/keyboard input support one-pixel steps. The slider accepts Home/End for its bounds.
+
+Controls preserve the first visible time and horizontal scroll position. Wheel zoom anchors at the pointer within the time grid. Positions are clamped at midnight/day-end; when all 24 hours fit, a previous scroll position cannot be retained. The minute timer never resets scrolling.
+
+Compact or short blocks simplify their text while retaining their actual geometric duration. Detailed blocks show additional workplace/duration information where space permits. Tiny blocks have full accessible labels and tooltips. The **Small events** disclosure offers separate 44px selection buttons for blocks too small to tap comfortably; these buttons open the original linked shift without enlarging its interval on the grid.
+
+The independent preference `shiftsync:v1:calendar-zoom` accepts only whole numbers from 18 to 80. Missing, malformed or out-of-range values display 48 without modifying schedule storage. The saved preference is replaced only on an explicit zoom interaction. If browser storage is unavailable, zoom continues for the session and displays a notice.
+
+`src/lib/calendarZoom.ts` owns the bounds, validation, anchor calculations and display-density rules. `useCalendarZoom` manages preference storage, scroll restoration and a non-passive wheel listener scoped to the calendar. `CalendarZoomControls` and `CalendarEventBlock` handle presentation. Dynamic readouts and calendar date labels remain safe when browser translation wraps their text.
 
 ## Workplaces and locations
 
@@ -85,7 +101,7 @@ Changes to any schedule schema in another tab stop saving and ask for a reload. 
 
 ## Validation
 
-Sprint 04: 93 passing tests across 9 files (the original 57 plus 36 additional cases), TypeScript and production build pass. No dependency or lockfile change. New cases cover workplaces/default locations, snapshots and custom zero-minute travel, referenced deletion/archiving, recurrence reassignment and future edits, travel conflicts, v2/v1 migrations, corrupt data, failed backup/write verification, UI filters and cross-tab protection. Browser checks and screenshots are documented in the accompanying Sprint 04 delivery report.
+Calendar zoom: 124 passing tests across 11 files (all 93 Sprint 04 cases plus 31 zoom cases), TypeScript and production build pass. No dependency or lockfile change. New cases cover workplaces/default locations, snapshots and custom zero-minute travel, referenced deletion/archiving, recurrence reassignment and future edits, travel conflicts, v2/v1 migrations, corrupt data, failed backup/write verification, UI filters and cross-tab protection. Zoom cases additionally cover presets/slider/reset, invalid preferences, proportional overnight/travel geometry, anchor/clamping behavior, platform-specific wheel interception, mobile Week scrolling, selection/creation, timer stability, storage failures and browser-translation compatibility. Browser checks and screenshots are documented in the accompanying delivery reports.
 
 ## Practical limits
 
